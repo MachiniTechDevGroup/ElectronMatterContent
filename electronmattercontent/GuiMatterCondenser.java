@@ -6,6 +6,8 @@ import net.minecraft.util.StatCollector;
 
 import org.lwjgl.opengl.GL11;
 
+import universalelectricity.core.UniversalElectricity;
+
 public class GuiMatterCondenser extends GuiContainer {
 	private TileEntityMatterCondenser entity;
 
@@ -33,7 +35,7 @@ public class GuiMatterCondenser extends GuiContainer {
 		fontRenderer.drawString("EMC: " + this.entity.progress, 28, 20, 4210752);
 
 		if (EMC.IC2) {
-			fontRenderer.drawString("EU: " + this.entity.energy, 80, 20, 4210752);
+			fontRenderer.drawString("EU: " + this.entity.ueJoules * UniversalElectricity.TO_IC2_RATIO, 80, 20, 4210752);
 		}
 	}
 }

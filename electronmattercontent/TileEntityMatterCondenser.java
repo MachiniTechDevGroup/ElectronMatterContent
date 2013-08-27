@@ -4,26 +4,45 @@ package electronmattercontent;
  import ic2.api.EnergyNet;
  import ic2.api.IEnergySink;
  import ic2.api.IEnergyTile;*/
+import ic2.api.Direction;
+import ic2.api.energy.event.EnergyTileLoadEvent;
+import ic2.api.energy.event.EnergyTileUnloadEvent;
+import ic2.api.energy.tile.IEnergySink;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.ISidedInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraftforge.common.ForgeDirection;
+import net.minecraftforge.common.MinecraftForge;
+import universalelectricity.core.UniversalElectricity;
+import universalelectricity.core.block.IConnector;
+import universalelectricity.core.block.IVoltage;
+import universalelectricity.core.electricity.ElectricityNetworkHelper;
+import universalelectricity.core.electricity.ElectricityPack;
+import buildcraft.api.power.IPowerProvider;
+import buildcraft.api.power.IPowerReceptor;
 
-public class TileEntityMatterCondenser extends TileEntity implements ISidedInventory/* , IEnergySink */{
+public class TileEntityMatterCondenser extends TileEntity implements ISidedInventory, IEnergySink, IPowerReceptor, IVoltage, IConnector {
 	private ItemStack[] inv = new ItemStack[60];
 	public ItemStack to = null;// The ItemStack to condense to
 	private String name;
 	int progress = 0;// The amount of emc it has condensed already
 	private int emcreq = 0;// The amount of emc required
 	private ItemStack[] up = new ItemStack[EMCUpgrade.UP_COUNT];
-	private int emccap = 1000000;
+	private int emccap = 10000000;
 
 	// IC2
-	public static final int MAX_ENERGY = 100000;
-	int energy = 0;
 	private boolean net = false;
+	private boolean nextTickIC2 = true;
+
+	// BC
+	private IPowerProvider powerprov;
+
+	// Ue
+	int ueJoules = 0;
+	public static int ueJoulesMax = 240000;
 
 	@Override
 	public int getSizeInventory() {
@@ -46,7 +65,7 @@ public class TileEntityMatterCondenser extends TileEntity implements ISidedInven
 		if (i > 54 && i <= 59) {
 			this.up[i - 55] = null;
 			if (i == 55) {
-				this.emccap = 1000000;
+				this.emccap = 10000000;
 			}
 		}
 
@@ -91,7 +110,7 @@ public class TileEntityMatterCondenser extends TileEntity implements ISidedInven
 		if (i > 54 && i <= 59) {
 			this.up[i - 55] = itemstack;
 			if (i == 55 && itemstack != null) {
-				this.emccap = 1000000 + (250000 * itemstack.stackSize);
+				this.emccap = 10000000 + (2500000 * itemstack.stackSize);
 			}
 		}
 
@@ -129,6 +148,7 @@ public class TileEntityMatterCondenser extends TileEntity implements ISidedInven
 		this.inv = new ItemStack[this.getSizeInventory()];
 		this.progress = par1NBTTagCompound.getInteger("EMC");
 		this.emccap = par1NBTTagCompound.getInteger("Cap");
+		this.ueJoules = par1NBTTagCompound.getInteger("Joules");
 
 		for (int i = 0; i < nbttaglist.tagCount(); ++i) {
 			NBTTagCompound nbttagcompound1 = (NBTTagCompound) nbttaglist.tagAt(i);
@@ -172,6 +192,7 @@ public class TileEntityMatterCondenser extends TileEntity implements ISidedInven
 		par1NBTTagCompound.setTag("Items", nbttaglist);
 		par1NBTTagCompound.setInteger("EMC", this.progress);
 		par1NBTTagCompound.setInteger("Cap", this.emccap);
+		par1NBTTagCompound.setInteger("IC2", this.ueJoules);
 
 		if (this.isInvNameLocalized()) {
 			par1NBTTagCompound.setString("CustomName", this.name);
@@ -184,9 +205,43 @@ public class TileEntityMatterCondenser extends TileEntity implements ISidedInven
 
 	@Override
 	public void updateEntity() {
-		/*
-		 * if (EMC.IC2) // IC2 { if (this.net != this.isPartofENet()) { this.setIC2ENetStatus(this.isPartofENet()); } }
-		 */
+		if (EMC.IC2) {
+			if (!this.worldObj.isRemote) {
+				if (this.nextTickIC2) {
+					MinecraftForge.EVENT_BUS.post(new EnergyTileLoadEvent(this));
+				}
+				this.nextTickIC2 = false;
+				this.net = true;
+			}
+		}
+
+		if (EMC.BC) {
+			if (this.demandsEnergy() > 0) {// Oh my. BC using IC2 code? Scandalous!
+				IPowerProvider p = this.getPowerProvider();
+				if (p != null) {
+					int MJrequested = (int) ((ueJoulesMax - this.ueJoules) * UniversalElectricity.TO_BC_RATIO);
+					p.update(this);
+					if (p.useEnergy(0, MJrequested, false) > 0) {
+						int mjGained = (int) (p.useEnergy(0, MJrequested, true) * UniversalElectricity.BC3_RATIO);
+						ueJoules += mjGained;
+						MJrequested -= mjGained;
+					}
+				}
+			}
+		}
+		
+		/*if (EMC.UE) {
+			if (this.demandsEnergy() > 0) {//Again! Oh, the horror!
+				int joulesRequired = ueJoulesMax - this.ueJoules;
+				ElectricityPack powerRequested = new ElectricityPack(energyRequired * wPerEnergy / getVoltage(), getVoltage());
+				ElectricityPack powerPack = ElectricityNetworkHelper.consumeFromMultipleSides(this, powerRequested);
+				_ueBuffer += powerPack.getWatts();
+
+				int energyFromUE = Math.min(_ueBuffer / wPerEnergy, energyRequired);
+				ueJoules += energyFromUE;
+				joulesRequired -= energyFromUE;
+			}
+		}*/
 
 		// Self
 		if (this.to != null) {
@@ -204,7 +259,7 @@ public class TileEntityMatterCondenser extends TileEntity implements ISidedInven
 	 */
 	private boolean canCondenseTo() {
 		if (EMC.IC2) {
-			return this.progress >= this.emcreq && this.energy >= this.computeEnergyUsage();
+			return this.progress >= this.emcreq && this.ueJoules >= this.computeEnergyUsage();
 		}
 
 		return this.progress >= this.emcreq;
@@ -247,11 +302,11 @@ public class TileEntityMatterCondenser extends TileEntity implements ISidedInven
 			this.inv[slot] = this.to.copy();
 			this.inv[slot].stackSize = 1;// That's a bug, Dave!
 			this.progress -= EMCAPI.instance().getEMCEntofItem(this.to).getEMC();
-			this.energy -= this.computeEnergyUsage();
+			this.ueJoules -= this.computeEnergyUsage();
 		} else {
 			this.inv[slot].stackSize++;
 			this.progress -= EMCAPI.instance().getEMCEntofItem(this.to).getEMC();
-			this.energy -= this.computeEnergyUsage();
+			this.ueJoules -= this.computeEnergyUsage();
 		}
 	}
 
@@ -298,25 +353,61 @@ public class TileEntityMatterCondenser extends TileEntity implements ISidedInven
 		return p;
 	}
 
+	@Override
+	public void validate() {
+		super.validate();
+		if (!net) {
+			nextTickIC2 = true;
+		}
+	}
+
+	@Override
+	public void invalidate() {
+		if (net) {
+			if (!worldObj.isRemote) {
+				MinecraftForge.EVENT_BUS.post(new EnergyTileUnloadEvent(this));
+			}
+			net = false;
+		}
+		ElectricityNetworkHelper.invalidate(this);
+		super.invalidate();
+	}
+
 	private int computeEnergyUsage() {
 		return (int) (1000 * EMCAPI.instance().getEMCEntofItem(this.to).getRef());
 	}
 
-	/*
-	 * private boolean isPartofENet() { return this.worldObj.getBlockTileEntity(xCoord + 1, yCoord, zCoord) instanceof IEnergyTile || this.worldObj.getBlockTileEntity(xCoord - 1, yCoord, zCoord) instanceof IEnergyTile ||
-	 * this.worldObj.getBlockTileEntity(xCoord, yCoord + 1, zCoord) instanceof IEnergyTile || this.worldObj.getBlockTileEntity(xCoord, yCoord - 1, zCoord) instanceof IEnergyTile || this.worldObj.getBlockTileEntity(xCoord, yCoord, zCoord + 1) instanceof
-	 * IEnergyTile || this.worldObj.getBlockTileEntity(xCoord, yCoord, zCoord - 1) instanceof IEnergyTile; } private void setIC2ENetStatus(boolean net) { this.net = net; try { if (net) { EnergyNet.getForWorld(this.worldObj).addTileEntity(this); } else {
-	 * EnergyNet.getForWorld(this.worldObj).removeTileEntity(this); } } catch (Exception e) { e.printStackTrace(); } }
-	 * @Override public boolean acceptsEnergyFrom(TileEntity emitter, Direction direction) { return true; }
-	 * @Override public boolean isAddedToEnergyNet() { return this.net; }
-	 * @Override public boolean demandsEnergy() { return this.energy > MAX_ENERGY; }
-	 * @Override public int injectEnergy(Direction directionFrom, int amount) { this.energy += amount; int e = 0; if (this.energy > MAX_ENERGY) { e = this.energy - MAX_ENERGY; } return e; }
-	 */
+	@Override
+	public boolean acceptsEnergyFrom(TileEntity emitter, Direction direction) {
+		return true;
+	}
+
+	@Override
+	public boolean isAddedToEnergyNet() {
+		return this.net;
+	}
+
+	@Override
+	public int demandsEnergy() {
+		return (int) ((ueJoulesMax * UniversalElectricity.TO_IC2_RATIO) - (this.ueJoules * UniversalElectricity.TO_IC2_RATIO));
+	}
+
+	@Override
+	public int injectEnergy(Direction directionFrom, int amount) {
+		this.ueJoules += (amount * UniversalElectricity.IC2_RATIO);
+		int e = 0;
+		if (this.ueJoules > ueJoulesMax) {
+			e = this.ueJoules - ueJoulesMax;
+		}
+		return (int) (e * UniversalElectricity.TO_IC2_RATIO);
+	}
 
 	@Override
 	public boolean isStackValidForSlot(int slot, ItemStack itemstack) {
 		if (slot >= 0 && slot < 28) {
 			return EMCAPI.instance().hasEMCEnt(itemstack);
+		} else if (slot >= 55 && slot < 60) {
+			return itemstack.getItem() instanceof EMCUpgrade;
 		}
 		return false;
 	}
@@ -334,9 +425,12 @@ public class TileEntityMatterCondenser extends TileEntity implements ISidedInven
 				res = pl2;
 				break;
 			default:
-				res = new int[2];
-				res[0] = 17;
-				res[1] = 18;
+				res = new int[5];
+				res[0] = 55;
+				res[1] = 56;
+				res[2] = 57;
+				res[3] = 58;
+				res[4] = 59;
 				break;// Even though it's not really necessary
 		}
 		return res;
@@ -364,5 +458,42 @@ public class TileEntityMatterCondenser extends TileEntity implements ISidedInven
 			return slot >= 28 && slot < 55;
 		}
 		return false;
+	}
+
+	@Override
+	public int getMaxSafeInput() {
+		return 128;
+	}
+
+	@Override
+	public boolean canConnect(ForgeDirection direction) {
+		return true;
+	}
+
+	@Override
+	public double getVoltage() {
+		return 120D;
+	}
+
+	@Override
+	public void setPowerProvider(IPowerProvider provider) {
+		this.powerprov = provider;
+	}
+
+	@Override
+	public IPowerProvider getPowerProvider() {
+		return this.powerprov;
+	}
+
+	@Override
+	public void doWork() {
+		// Nothing.
+
+	}
+
+	@Override
+	public int powerRequest(ForgeDirection from) {
+		int powerProviderPower = (int) Math.min(powerprov.getMaxEnergyStored() - powerprov.getEnergyStored(), powerprov.getMaxEnergyReceived());
+		return Math.max(powerProviderPower, 0);
 	}
 }

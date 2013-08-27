@@ -1,5 +1,10 @@
 package electronmattercontent;
 
+import static electronmattercontent.EMCAPI.instance;
+
+import ic2.api.recipe.Recipes;
+
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -12,10 +17,9 @@ import net.minecraft.item.crafting.FurnaceRecipes;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.item.crafting.ShapedRecipes;
 import net.minecraft.item.crafting.ShapelessRecipes;
+import net.minecraftforge.oredict.OreDictionary;
 import net.minecraftforge.oredict.ShapedOreRecipe;
 import net.minecraftforge.oredict.ShapelessOreRecipe;
-
-import static electronmattercontent.EMCAPI.instance;
 
 public class AutoEMCDeterminer implements Runnable {
 	private static CraftingManager craft = CraftingManager.getInstance();// No need to be public,
@@ -26,10 +30,10 @@ public class AutoEMCDeterminer implements Runnable {
 
 	public void initEMCBasedOnCrafting() {
 		rec = craft.getRecipeList();
-		for (int iter = 1; iter <= 4; iter++) {
-			EMC.println("--------------------------------Round " + iter + "/4--------------------------------");
-			for (int i = 1; i <= 3; i++) {
-				EMC.println("Scanning every crafting recipe, we are in the " + i + "/3 loop, just to be sure. (I doubt some recipe has +10 different ingredients which need to be crafted)");
+		for (int iter = 1; iter <= 5; iter++) {
+			EMC.println("--------------------------------Round " + iter + "/5--------------------------------");
+			for (int i = 1; i <= 5; i++) {
+				EMC.println("Scanning every crafting recipe, we are in the " + i + "/5 loop, just to be sure. (I doubt some recipe has +10 different ingredients which need to be crafted)");
 				for (int j = 0; j < rec.size(); j++) {
 					IRecipe recipe = rec.get(j);
 					if (recipe.getRecipeOutput() != null && recipe.getRecipeOutput().stackSize != 0) {
@@ -54,7 +58,10 @@ public class AutoEMCDeterminer implements Runnable {
 							}
 						}
 						if (add) {
-							instance().addEMCtoItem(recipe.getRecipeOutput(), new EMCEntry(emc / recipe.getRecipeOutput().stackSize), false);// Lazy. Ref will not change as of now
+							instance().addEMCtoItem(recipe.getRecipeOutput(), new EMCEntry(emc / recipe.getRecipeOutput().stackSize), true);// Lazy. Ref will not change as of now
+							if (OreDictionary.getOreID(recipe.getRecipeOutput()) != -1) {//OreDict support as well
+								instance().addEMCtoOreDictName(OreDictionary.getOreName(OreDictionary.getOreID(recipe.getRecipeOutput())), new EMCEntry(emc / recipe.getRecipeOutput().stackSize));
+							}
 						}
 					} else if (recipe instanceof ShapelessRecipes) {
 						if (instance().hasEMCEnt(recipe.getRecipeOutput())) {
@@ -74,7 +81,10 @@ public class AutoEMCDeterminer implements Runnable {
 							}
 						}
 						if (add) {
-							instance().addEMCtoItem(recipe.getRecipeOutput(), new EMCEntry(emc / recipe.getRecipeOutput().stackSize), false);// Lazy. Ref will not change as of now
+							instance().addEMCtoItem(recipe.getRecipeOutput(), new EMCEntry(emc / recipe.getRecipeOutput().stackSize), true);// Lazy. Ref will not change as of now
+							if (OreDictionary.getOreID(recipe.getRecipeOutput()) != -1) {//OreDict support as well
+								instance().addEMCtoOreDictName(OreDictionary.getOreName(OreDictionary.getOreID(recipe.getRecipeOutput())), new EMCEntry(emc / recipe.getRecipeOutput().stackSize));
+							}
 						}
 					} else if (recipe instanceof ShapedOreRecipe) {
 						if (instance().hasEMCEnt(recipe.getRecipeOutput())) {
@@ -94,9 +104,25 @@ public class AutoEMCDeterminer implements Runnable {
 										continue;
 									}
 								} else if (s instanceof ArrayList) {// Grabs the first one available. In this case, one should use addEMCtoOreDictName
-									ItemStack stack = (ItemStack) ((ArrayList) s).get(0);// Always seems to be ItemStack. REPORT CRASHES
-									if (instance().hasEMCEnt(stack)) {
-										emc += instance().getEMCEntofItem(stack).getEMC();
+									if (((ArrayList) s).size() == 0) {
+										EMC.warn("Found a ShapedOreRecipe, but ArrayList's size is zero!");
+										continue;
+									}
+									try {
+										ItemStack stack = (ItemStack) ((ArrayList) s).get(0);// Always seems to be ItemStack. REPORT CRASHES
+										if (instance().hasEMCEnt(stack)) {
+											emc += instance().getEMCEntofItem(stack).getEMC();
+										} else {
+											add = false;
+											continue;
+										}
+									} catch (Exception e) {
+										EMC.warn(e.getMessage());
+										EMC.warn("Invalid ShapedOreRecipe!!");
+									}
+								} else if (s instanceof String) {
+									if (instance().hasOreDictEMCEnt((String) s)) {
+										emc += instance().getEMCEntofOreDictName((String) s).getEMC();
 									} else {
 										add = false;
 										continue;
@@ -105,7 +131,10 @@ public class AutoEMCDeterminer implements Runnable {
 							}
 						}
 						if (add) {
-							instance().addEMCtoItem(recipe.getRecipeOutput(), new EMCEntry(emc / recipe.getRecipeOutput().stackSize), false);// Lazy. Ref will not change as of now
+							instance().addEMCtoItem(recipe.getRecipeOutput(), new EMCEntry(emc / recipe.getRecipeOutput().stackSize), true);// Lazy. Ref will not change as of now
+							if (OreDictionary.getOreID(recipe.getRecipeOutput()) != -1) {//OreDict support as well
+								instance().addEMCtoOreDictName(OreDictionary.getOreName(OreDictionary.getOreID(recipe.getRecipeOutput())), new EMCEntry(emc / recipe.getRecipeOutput().stackSize));
+							}
 						}
 					} else if (recipe instanceof ShapelessOreRecipe) {
 						if (instance().hasEMCEnt(recipe.getRecipeOutput())) {
@@ -125,9 +154,25 @@ public class AutoEMCDeterminer implements Runnable {
 										continue;
 									}
 								} else if (s instanceof ArrayList) {// Grabs the first one available. In this case, one should use addEMCtoOreDictName
-									ItemStack stack = (ItemStack) ((ArrayList) s).get(0);// Always seems to be ItemStack. REPORT CRASHES
-									if (instance().hasEMCEnt(stack)) {
-										emc += instance().getEMCEntofItem(stack).getEMC();
+									if (((ArrayList) s).size() == 0) {
+										EMC.warn("Found a ShapedOreRecipe, but ArrayList's size is zero!");
+										continue;
+									}
+									try {
+										ItemStack stack = (ItemStack) ((ArrayList) s).get(0);// Always seems to be ItemStack. REPORT CRASHES
+										if (instance().hasEMCEnt(stack)) {
+											emc += instance().getEMCEntofItem(stack).getEMC();
+										} else {
+											add = false;
+											continue;
+										}
+									} catch (Exception e) {
+										EMC.warn(e.getMessage());
+										EMC.warn("Invalid ShapedOreRecipe!!");
+									}
+								} else if (s instanceof String) {
+									if (instance().hasOreDictEMCEnt((String) s)) {
+										emc += instance().getEMCEntofOreDictName((String) s).getEMC();
 									} else {
 										add = false;
 										continue;
@@ -136,13 +181,103 @@ public class AutoEMCDeterminer implements Runnable {
 							}
 						}
 						if (add) {
-							instance().addEMCtoItem(recipe.getRecipeOutput(), new EMCEntry(emc / recipe.getRecipeOutput().stackSize), false);// Lazy. Ref will not change as of now
+							instance().addEMCtoItem(recipe.getRecipeOutput(), new EMCEntry(emc / recipe.getRecipeOutput().stackSize), true);// Lazy. Ref will not change as of now
+							if (OreDictionary.getOreID(recipe.getRecipeOutput()) != -1) {//OreDict support as well
+								instance().addEMCtoOreDictName(OreDictionary.getOreName(OreDictionary.getOreID(recipe.getRecipeOutput())), new EMCEntry(emc / recipe.getRecipeOutput().stackSize));
+							}
 						}
 					}
-					/*
-					 * if (EMC.isModLoaded("IC2")) { try { Class ic2rec = Class.forName("ic2.core.AdvRecipe"); Class ic2shprec = Class.forName("ic2.core.AdvShapelessRecipe"); Object[] in = new Object[9]; if (recipe.getClass() == ic2rec) { in = (Object[])
-					 * ic2rec.getField("input").get(in); } else if (recipe.getClass() == ic2shprec) { } } catch (Exception e) { throw new RuntimeException(e); } }
-					 */
+
+					if (EMC.isModLoaded("IC2")) {
+						try {//Advanced IC2 Recipes, both feature ItemStacks and OreDictionary Integration
+							if (instance().hasEMCEnt(recipe.getRecipeOutput())) {
+								continue;
+							}
+							Class ic2rec = Class.forName("ic2.core.AdvRecipe");
+							Class ic2shprec = Class.forName("ic2.core.AdvShapelessRecipe");
+							Object[] in;
+							if (recipe.getClass() == ic2rec) {
+								Field input = ic2rec.getDeclaredField("input");
+								in = (Object[]) input.get(recipe);
+								int emc = 0;
+								boolean add = true;
+								for (Object o : in) {
+									if (o != null) {
+										if (o instanceof ItemStack) {
+											if (instance().hasEMCEnt((ItemStack) o)) {
+												emc += instance().getEMCEntofItem((ItemStack) o).getEMC();
+											} else {
+												add = false;
+												continue;
+											}
+										} else if (o instanceof String) {
+											if (instance().hasOreDictEMCEnt((String) o)) {
+												emc += instance().getEMCEntofOreDictName((String) o).getEMC();
+											} else {
+												add = false;
+												continue;
+											}
+										}
+									}
+								}
+								if (add) {
+									instance().addEMCtoItem(recipe.getRecipeOutput(), new EMCEntry(emc / recipe.getRecipeOutput().stackSize), true);// Lazy. Ref will not change as of now
+									if (OreDictionary.getOreID(recipe.getRecipeOutput()) != -1) {//OreDict support as well
+										instance().addEMCtoOreDictName(OreDictionary.getOreName(OreDictionary.getOreID(recipe.getRecipeOutput())), new EMCEntry(emc / recipe.getRecipeOutput().stackSize));
+									}
+								}
+							} else if (recipe.getClass() == ic2shprec) {
+								Field input = ic2shprec.getDeclaredField("input");
+								in = (Object[]) input.get(recipe);
+								int emc = 0;
+								boolean add = true;
+								for (Object o : in) {
+									if (o != null) {
+										if (o instanceof ItemStack) {
+											if (instance().hasEMCEnt((ItemStack) o)) {
+												emc += instance().getEMCEntofItem((ItemStack) o).getEMC();
+											} else {
+												add = false;
+												continue;
+											}
+										} else if (o instanceof String) {
+											if (instance().hasOreDictEMCEnt((String) o)) {
+												emc += instance().getEMCEntofOreDictName((String) o).getEMC();
+											} else {
+												add = false;
+												continue;
+											}
+										}
+									}
+								}
+								if (add) {
+									instance().addEMCtoItem(recipe.getRecipeOutput(), new EMCEntry(emc / recipe.getRecipeOutput().stackSize), true);// Lazy. Ref will not change as of now
+									if (OreDictionary.getOreID(recipe.getRecipeOutput()) != -1) {//OreDict support as well
+										instance().addEMCtoOreDictName(OreDictionary.getOreName(OreDictionary.getOreID(recipe.getRecipeOutput())), new EMCEntry(emc / recipe.getRecipeOutput().stackSize));
+									}
+								}
+							}
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+						try {//Compressor (macerator and extractor break EMCs anyways, and electric furnace...well...it's pointless.)
+							Map<ItemStack, ItemStack> com = Recipes.compressor.getRecipes();
+							Iterator comiter = com.keySet().iterator();
+							while (comiter.hasNext()) {
+								ItemStack before = (ItemStack) comiter.next();
+								ItemStack after = com.get(before);
+								if (EMCAPI.instance().hasEMCEnt(before)) {
+									int emc = EMCAPI.instance().getEMCEntofItem(before).getEMC() * before.stackSize;
+									EMCAPI.instance().addEMCtoItem(after, new EMCEntry(emc, EMCAPI.instance().getEMCEntofItem(before).getRef()), true);
+								} else {
+									continue;//Nope.
+								}
+							}
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
+
 				}
 			}
 			EMC.println("Phew. On to the Furnace Recipes.");

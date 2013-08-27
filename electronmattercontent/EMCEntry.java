@@ -51,5 +51,10 @@ public class EMCEntry {
 	public boolean hasUps() {
 		return !(this.up.size() == 1 && this.up.get(0) == EMCUpgrade.NONE);
 	}
+	
+	@Override
+	public String toString() {
+		return "EMC: " + this.EMC + " Ref: " + this.Ref + "Upgrades: " + this.up;
+	}
 
 }

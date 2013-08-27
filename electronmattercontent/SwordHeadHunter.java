@@ -21,7 +21,7 @@ public class SwordHeadHunter extends ItemSword {
 	private Icon icon;
 	private int ccool = 240;
 	private int heads = 0;
-	public static final DamageSource hhs = new DamageSourceHead("death.weapon.headhunter");
+	public static final DamageSource hhs = new DamageSourceHead("headhunter");
 
 	public SwordHeadHunter(int par1) {
 		super(par1, EMC.mat);
@@ -63,7 +63,7 @@ public class SwordHeadHunter extends ItemSword {
 
 	@Override
 	public void onUpdate(ItemStack par1ItemStack, World par2World, Entity par3Entity, int par4, boolean par5) {
-		if (this.wielder != null) {
+		if (par1ItemStack.stackTagCompound != null) {
 			if (!((EntityPlayer) par3Entity).username.equals(wielder)) {
 				((EntityLiving) par3Entity).addPotionEffect(new PotionEffect(9, 72000));
 				((EntityLiving) par3Entity).addPotionEffect(new PotionEffect(18, 72000));
@@ -81,8 +81,9 @@ public class SwordHeadHunter extends ItemSword {
 					((EntityLiving) par3Entity).addPotionEffect(new PotionEffect(5, 20, 2));
 				}
 			}
-			if (par1ItemStack.stackTagCompound != null) {
-				this.heads = par1ItemStack.stackTagCompound.getInteger("Head");
+			this.heads = par1ItemStack.stackTagCompound.getInteger("Head");
+			if (this.wielder == null) {
+				this.wielder = par1ItemStack.stackTagCompound.getString("Owner");
 			}
 		} else {
 			if (par1ItemStack.stackTagCompound == null) {

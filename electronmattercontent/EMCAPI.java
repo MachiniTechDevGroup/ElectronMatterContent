@@ -161,4 +161,8 @@ public class EMCAPI {
 		}
 		return new EMCEntry();
 	}
+
+	public boolean hasOreDictEMCEnt(String name) {
+		return !getEMCEntofOreDictName(name).isEmptyEntry();
+	}
 }

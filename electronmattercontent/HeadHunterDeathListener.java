@@ -10,9 +10,6 @@ public class HeadHunterDeathListener {
 	@ForgeSubscribe
 	public void onDeath(LivingDeathEvent event) {
 		Entity src = event.source.getSourceOfDamage();
-		EMC.println("LivingDeathEvent!");
-		EMC.println(event.source.damageType);
-		EMC.println(event.source.getDeathMessage(event.entityLiving));
 		if (src instanceof EntityPlayer) {
 			if (((EntityPlayer)src).getCurrentEquippedItem() != null && ((EntityPlayer)src).getCurrentEquippedItem().getItem() instanceof SwordHeadHunter) {
 				ItemStack toinc = ((EntityPlayer)src).getCurrentEquippedItem();

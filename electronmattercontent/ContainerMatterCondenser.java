@@ -156,7 +156,7 @@ public class ContainerMatterCondenser extends Container {
 	public void addCraftingToCrafters(ICrafting par1ICrafting) {
 		super.addCraftingToCrafters(par1ICrafting);
 		par1ICrafting.sendProgressBarUpdate(this, 0, this.te.progress);
-		par1ICrafting.sendProgressBarUpdate(this, 1, this.te.energy);
+		par1ICrafting.sendProgressBarUpdate(this, 1, this.te.ueJoules);
 	}
 
 	@Override
@@ -170,13 +170,13 @@ public class ContainerMatterCondenser extends Container {
 				icrafting.sendProgressBarUpdate(this, 0, this.te.progress);
 			}
 
-			if (this.lastEng != this.te.energy) {
-				icrafting.sendProgressBarUpdate(this, 1, this.te.energy);
+			if (this.lastEng != this.te.ueJoules) {
+				icrafting.sendProgressBarUpdate(this, 1, this.te.ueJoules);
 			}
 		}
 
 		this.lastEMC = this.te.progress;
-		this.lastEng = this.te.energy;
+		this.lastEng = this.te.ueJoules;
 	}
 
 	@SideOnly(Side.CLIENT)
@@ -186,7 +186,7 @@ public class ContainerMatterCondenser extends Container {
 		}
 
 		if (par1 == 1) {
-			this.te.energy = par2;
+			this.te.ueJoules = par2;
 		}
 	}
 }
