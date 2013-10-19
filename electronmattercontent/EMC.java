@@ -38,13 +38,14 @@ import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.common.registry.LanguageRegistry;
 
 @Mod(modid = "modEMC", name = "Electron Matter Content", version = "1.0.0")
-@NetworkMod(clientSideRequired = true, serverSideRequired = false)
+@NetworkMod(clientSideRequired = true, serverSideRequired = false, channels = "CondenserSync")
 public class EMC implements IConfigureNEI {
 	@Instance("modEMC")
 	public static EMC instance;
 	@SidedProxy(clientSide = "electronmattercontent.ClientProxy", serverSide = "electronmattercontent.CommonProxy")
 	public static CommonProxy proxy;
 	public static BlockMatterCondenser mblk = new BlockMatterCondenser(2900);
+	public static BlockHugeChest hchst = new BlockHugeChest(2903);
 	public static SwordHeadHunter swrd;
 	public static Configuration config;
 	public static boolean IC2 = false;
@@ -81,19 +82,23 @@ public class EMC implements IConfigureNEI {
 		GameRegistry.registerItem(swrd, "head");
 		LanguageRegistry.addName(swrd, "Head Hunter's Sword");
 		GameRegistry.registerBlock(mblk, "matterblock");
-		GameRegistry.registerTileEntity(TileEntityMatterCondenser.class,
-				"modEMC");
+		GameRegistry.registerBlock(hchst, "hugechest");
+		GameRegistry.registerTileEntity(TileEntityMatterCondenser.class, "modEMCCond");
+		GameRegistry.registerTileEntity(TileEntityHugeChest.class, "modEMCChst");
 		LanguageRegistry.addName(mblk, "Electron Rearranger");
-		NetworkRegistry.instance()
-				.registerGuiHandler(instance, new GuiHelper());
-		//GameRegistry.addShapedRecipe(new ItemStack(swrd), "sic", "wdz", "ptp", Character.valueOf('s'), new ItemStack(397, 1, 0), Character.valueOf('c'), new ItemStack(397, 1, 4), Character.valueOf('w'), new ItemStack(397, 1, 1), Character.valueOf('z'), new ItemStack(397, 1, 2), Character.valueOf('p'), new ItemStack(397, 1, 3), Character.valueOf('d'), Item.diamond, Character.valueOf('t'), Item.stick, Character.valueOf('i'), Item.ingotIron);
+		LanguageRegistry.addName(hchst, "Huge Chest");
+		NetworkRegistry.instance().registerGuiHandler(instance, new GuiHelper());
+		//NetworkRegistry.instance().registerChannel(new PacketHandler(), "CondenserSync");
+		// GameRegistry.addShapedRecipe(new ItemStack(swrd), "sic", "wdz", "ptp", Character.valueOf('s'), new ItemStack(397, 1, 0), Character.valueOf('c'), new ItemStack(397, 1, 4), Character.valueOf('w'), new ItemStack(397, 1, 1), Character.valueOf('z'),
+		// new ItemStack(397, 1, 2), Character.valueOf('p'), new ItemStack(397, 1, 3), Character.valueOf('d'), Item.diamond, Character.valueOf('t'), Item.stick, Character.valueOf('i'), Item.ingotIron);
 	}
+
 	@PostInit
 	public void somethingOrOther(FMLPostInitializationEvent event) {
 		addModEMC();
 		new Thread(new AutoEMCDeterminer()).run();
-		//EMCAPI.printAllEMCValues();
-		//println("Fence:" + EMCAPI.hasEMC(new ItemStack(Block.fence)));
+		// EMCAPI.printAllEMCValues();
+		// println("Fence:" + EMCAPI.hasEMC(new ItemStack(Block.fence)));
 		MinecraftForge.EVENT_BUS.register(new HeadHunterDeathListener());
 		if (HARD_MODE) {
 			becomeHardMode();
@@ -112,26 +117,26 @@ public class EMC implements IConfigureNEI {
 		instance().addEMCtoOreDictName("ingotAluminium", new EMCEntry(128, EMCUpgrade.SMELT));
 		instance().addEMCtoOreDictName("ingotSilver", new EMCEntry(512, EMCUpgrade.SMELT));
 		if (isModLoaded("IC2")) {
-			//Rubber/Resin
+			// Rubber/Resin
 			instance().addEMCtoItem(getItem("resin"), new EMCEntry(24), true);
 			instance().addEMCtoItem(getItem("rubber"), new EMCEntry(24, .75f), true);
-			//IC2 cables
+			// IC2 cables
 			instance().addEMCtoItem(getItem("insulatedCopperCableItem"), new EMCEntry(88), true);
 			instance().addEMCtoItem(getItem("copperCableItem"), new EMCEntry(64), true);
-			
+
 			instance().addEMCtoItem(getItem("tinCableItem"), new EMCEntry(64), true);
-			
+
 			instance().addEMCtoItem(getItem("glassFiberCableItem"), new EMCEntry(2081), true);
-			
+
 			instance().addEMCtoItem(getItem("goldCableItem"), new EMCEntry(512), true);
 			instance().addEMCtoItem(getItem("insulatedGoldCableItem"), new EMCEntry(536), true);
 			instance().addEMCtoItem(getItem("doubleInsulatedGoldCableItem"), new EMCEntry(560), true);
-			
+
 			instance().addEMCtoItem(getItem("ironCableItem"), new EMCEntry(64), true);
 			instance().addEMCtoItem(getItem("insulatedIronCableItem"), new EMCEntry(88), true);
 			instance().addEMCtoItem(getItem("doubleInsulatedIronCableItem"), new EMCEntry(112), true);
-			instance().addEMCtoItem(getItem("trippleInsulatedIronCableItem"), new EMCEntry(136), true);//WTF? "tripple" is this why IC2 hasn't been updated to 1.5 officially?
-			//Misc
+			instance().addEMCtoItem(getItem("trippleInsulatedIronCableItem"), new EMCEntry(136), true);// WTF? "tripple" is this why IC2 hasn't been updated to 1.5 officially?
+			// Misc
 			instance().addEMCtoItem(getItem("scaffold"), new EMCEntry(2), true);
 			instance().addEMCtoItem(getItem("cell"), new EMCEntry(64), true);
 			instance().addEMCtoItem(getItem("lavaCell"), new EMCEntry(128), true);
@@ -152,14 +157,14 @@ public class EMC implements IConfigureNEI {
 		instance().addEMCtoItem(Item.redstone, new EMCEntry(64), false);
 		instance().addEMCtoItem(Block.obsidian, new EMCEntry(64), false);
 		instance().addEMCtoItem(Item.netherStar, new EMCEntry(5000000), false);
-		instance().addEMCtoItem(Item.dyePowder.itemID, 4, new EMCEntry(768));//Lapis
-		instance().addEMCtoItem(Item.lightStoneDust, new EMCEntry(128), false);//Glowstone. lightStoneDust? WTF?
+		instance().addEMCtoItem(Item.dyePowder.itemID, 4, new EMCEntry(768));// Lapis
+		instance().addEMCtoItem(Item.lightStoneDust, new EMCEntry(128), false);// Glowstone. lightStoneDust? WTF?
 		instance().addEMCtoItem(Item.skull, new EMCEntry(512), false);
 		instance().addEMCtoItem(Item.appleRed, new EMCEntry(64), false);
 		instance().addEMCtoItem(Item.wheat, new EMCEntry(24), false);
 		instance().addEMCtoItem(Block.dragonEgg, new EMCEntry(589824), false);
-		
-		//OreDict
+
+		// OreDict
 		instance().addEMCtoOreDictName("plankWood", new EMCEntry(8));
 		instance().addEMCtoOreDictName("stickWood", new EMCEntry(4));
 		instance().addEMCtoOreDictName("slabWood", new EMCEntry(4));
@@ -168,23 +173,23 @@ public class EMC implements IConfigureNEI {
 	}
 
 	public static void println(String s) {
-		//System.out.println("[ElectronMatterContent] " + s);
+		// System.out.println("[ElectronMatterContent] " + s);
 		log.info(s);
 	}
-	
+
 	public static void warn(String s) {
 		log.warning(s);
 	}
-	
+
 	public static void becomeHardMode() {
 		try {
 			Class gtapi = Class.forName("gregtechmod.api.GregTech_API");
 			Class gtmetaitem = Class.forName("gregtechmod.common.items.GT_MetaItem_Abstract");
-			Method getstacks = gtmetaitem.getDeclaredMethod("getStackList", ((Class[])null));
+			Method getstacks = gtmetaitem.getDeclaredMethod("getStackList", ((Class[]) null));
 			Method centrec = gtapi.getDeclaredMethod("addCentrifugeRecipe", ItemStack.class, Integer.class, ItemStack.class, ItemStack.class, ItemStack.class, ItemStack.class, Integer.class);
 			Method getitem = gtmetaitem.getDeclaredMethod("getUnunifiedStack", Integer.class, Integer.class);
-			//centrec.invoke(null, GameRegistry.findItemStack("GT_Addon", "mRuby", 8), 3, GameRegistry.findItemStack("GT_Addon", "ingotAluminium", 2), (Items.getItem("airCell").stackSize = 2), GameRegistry.findItemStack("GT_Addon", "blah", 1));
-			for (ItemStack is : (ItemStack[])getstacks.invoke(null, ((Object[])null))) {
+			// centrec.invoke(null, GameRegistry.findItemStack("GT_Addon", "mRuby", 8), 3, GameRegistry.findItemStack("GT_Addon", "ingotAluminium", 2), (Items.getItem("airCell").stackSize = 2), GameRegistry.findItemStack("GT_Addon", "blah", 1));
+			for (ItemStack is : (ItemStack[]) getstacks.invoke(null, ((Object[]) null))) {
 				System.out.println(is);
 			}
 		} catch (Exception e) {
@@ -211,5 +216,14 @@ public class EMC implements IConfigureNEI {
 	@Override
 	public String getVersion() {
 		return "1.0";
+	}
+
+	public static ItemStack getGregtechItem(int aIndex, int aAmount, int aMeta) {
+		try {
+			return (ItemStack) Class.forName("gregtechmod.GT_Mod").getMethod("getGregTechItem", new Class[] { Integer.TYPE, Integer.TYPE, Integer.TYPE })
+					.invoke(null, new Object[] { Integer.valueOf(aIndex), Integer.valueOf(aAmount), Integer.valueOf(aMeta) });
+		} catch (Exception e) {
+		}
+		return null;
 	}
 }

@@ -35,6 +35,10 @@ public class EMCAPI {
 	public void addEMCtoItem(int id, int meta, EMCEntry ent) {// Base of addEMCtoItem
 		EMC.println("Adding EMC of " + ent.getEMC() + " to id " + id + " and meta " + meta);
 		emc.put(Arrays.asList(id, meta), ent);
+		ItemStack stack = new ItemStack (id, 1, meta);
+		if (!this.hasOreDictEMCEnt(OreDictionary.getOreName(OreDictionary.getOreID(stack)))) {
+			this.addEMCtoOreDictName(OreDictionary.getOreName(OreDictionary.getOreID(stack)), ent);
+		}
 	}
 
 	/**

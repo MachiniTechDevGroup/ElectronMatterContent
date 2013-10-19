@@ -176,7 +176,7 @@ public class BlockMatterCondenser extends BlockContainer {
 			((TileEntityMatterCondenser) par1World.getBlockTileEntity(par2, par3, par4)).setName(par6ItemStack.getDisplayName());
 		}
 	}
-	
+
 	@SideOnly(Side.CLIENT)
 	public void registerIcons(IconRegister reg) {
 		front = reg.registerIcon("EMC:matterfront");
@@ -184,7 +184,7 @@ public class BlockMatterCondenser extends BlockContainer {
 		bottom = reg.registerIcon("EMC:matterbottom");
 		side = reg.registerIcon("EMC:matterside");
 	}
-	
+
 	@SideOnly(Side.CLIENT)
 	public Icon getIcon(int par1, int par2) {
 		if (par1 == 3 && par2 == 0) {

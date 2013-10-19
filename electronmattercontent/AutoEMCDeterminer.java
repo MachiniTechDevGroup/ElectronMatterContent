@@ -59,9 +59,6 @@ public class AutoEMCDeterminer implements Runnable {
 						}
 						if (add) {
 							instance().addEMCtoItem(recipe.getRecipeOutput(), new EMCEntry(emc / recipe.getRecipeOutput().stackSize), true);// Lazy. Ref will not change as of now
-							if (OreDictionary.getOreID(recipe.getRecipeOutput()) != -1) {//OreDict support as well
-								instance().addEMCtoOreDictName(OreDictionary.getOreName(OreDictionary.getOreID(recipe.getRecipeOutput())), new EMCEntry(emc / recipe.getRecipeOutput().stackSize));
-							}
 						}
 					} else if (recipe instanceof ShapelessRecipes) {
 						if (instance().hasEMCEnt(recipe.getRecipeOutput())) {
@@ -82,9 +79,6 @@ public class AutoEMCDeterminer implements Runnable {
 						}
 						if (add) {
 							instance().addEMCtoItem(recipe.getRecipeOutput(), new EMCEntry(emc / recipe.getRecipeOutput().stackSize), true);// Lazy. Ref will not change as of now
-							if (OreDictionary.getOreID(recipe.getRecipeOutput()) != -1) {//OreDict support as well
-								instance().addEMCtoOreDictName(OreDictionary.getOreName(OreDictionary.getOreID(recipe.getRecipeOutput())), new EMCEntry(emc / recipe.getRecipeOutput().stackSize));
-							}
 						}
 					} else if (recipe instanceof ShapedOreRecipe) {
 						if (instance().hasEMCEnt(recipe.getRecipeOutput())) {
@@ -132,9 +126,6 @@ public class AutoEMCDeterminer implements Runnable {
 						}
 						if (add) {
 							instance().addEMCtoItem(recipe.getRecipeOutput(), new EMCEntry(emc / recipe.getRecipeOutput().stackSize), true);// Lazy. Ref will not change as of now
-							if (OreDictionary.getOreID(recipe.getRecipeOutput()) != -1) {//OreDict support as well
-								instance().addEMCtoOreDictName(OreDictionary.getOreName(OreDictionary.getOreID(recipe.getRecipeOutput())), new EMCEntry(emc / recipe.getRecipeOutput().stackSize));
-							}
 						}
 					} else if (recipe instanceof ShapelessOreRecipe) {
 						if (instance().hasEMCEnt(recipe.getRecipeOutput())) {
@@ -182,9 +173,6 @@ public class AutoEMCDeterminer implements Runnable {
 						}
 						if (add) {
 							instance().addEMCtoItem(recipe.getRecipeOutput(), new EMCEntry(emc / recipe.getRecipeOutput().stackSize), true);// Lazy. Ref will not change as of now
-							if (OreDictionary.getOreID(recipe.getRecipeOutput()) != -1) {//OreDict support as well
-								instance().addEMCtoOreDictName(OreDictionary.getOreName(OreDictionary.getOreID(recipe.getRecipeOutput())), new EMCEntry(emc / recipe.getRecipeOutput().stackSize));
-							}
 						}
 					}
 
@@ -222,9 +210,6 @@ public class AutoEMCDeterminer implements Runnable {
 								}
 								if (add) {
 									instance().addEMCtoItem(recipe.getRecipeOutput(), new EMCEntry(emc / recipe.getRecipeOutput().stackSize), true);// Lazy. Ref will not change as of now
-									if (OreDictionary.getOreID(recipe.getRecipeOutput()) != -1) {//OreDict support as well
-										instance().addEMCtoOreDictName(OreDictionary.getOreName(OreDictionary.getOreID(recipe.getRecipeOutput())), new EMCEntry(emc / recipe.getRecipeOutput().stackSize));
-									}
 								}
 							} else if (recipe.getClass() == ic2shprec) {
 								Field input = ic2shprec.getDeclaredField("input");
@@ -252,9 +237,6 @@ public class AutoEMCDeterminer implements Runnable {
 								}
 								if (add) {
 									instance().addEMCtoItem(recipe.getRecipeOutput(), new EMCEntry(emc / recipe.getRecipeOutput().stackSize), true);// Lazy. Ref will not change as of now
-									if (OreDictionary.getOreID(recipe.getRecipeOutput()) != -1) {//OreDict support as well
-										instance().addEMCtoOreDictName(OreDictionary.getOreName(OreDictionary.getOreID(recipe.getRecipeOutput())), new EMCEntry(emc / recipe.getRecipeOutput().stackSize));
-									}
 								}
 							}
 						} catch (Exception e) {

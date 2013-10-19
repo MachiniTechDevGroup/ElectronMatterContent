@@ -1,18 +1,24 @@
 package electronmattercontent;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.ICrafting;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.packet.Packet;
+import net.minecraft.tileentity.TileEntity;
+import cpw.mods.fml.common.FMLCommonHandler;
+import cpw.mods.fml.common.network.PacketDispatcher;
+import cpw.mods.fml.common.network.Player;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 public class ContainerMatterCondenser extends Container {
-	private TileEntityMatterCondenser te;
-	private int lastEMC = 0;
-	private int lastEng = 0;
+	TileEntityMatterCondenser te;
+	private long lastEMC = 0;
+	private long lastEng = 0;
 
 	public ContainerMatterCondenser(TileEntityMatterCondenser entity, InventoryPlayer inventory) {
 		this.te = entity;
@@ -59,7 +65,6 @@ public class ContainerMatterCondenser extends Container {
 
 	@Override
 	public ItemStack transferStackInSlot(EntityPlayer par1EntityPlayer, int slotnum) {
-		System.out.println("Slot Number: " + slotnum);
 		ItemStack itemstack = null;
 		Slot slot = (Slot) this.inventorySlots.get(slotnum);
 
@@ -76,8 +81,14 @@ public class ContainerMatterCondenser extends Container {
 				slot.onSlotChange(itemstack1, itemstack);
 			} else if (slotnum >= 28 && slotnum <= 54 && !(this.getSlot(0).getStack().isItemEqual(this.getSlot(slotnum).getStack()))) // Ease of recondensing items
 			{
-				if (!this.mergeItemStack(itemstack1, 1, 28, false)) {
-					return null;
+				if (this.te.to == null) {
+					if (!this.mergeItemStack(itemstack1, 55, 91, true)) {
+						return null;
+					}
+				} else {
+					if (!this.mergeItemStack(itemstack1, 1, 28, false)) {
+						return null;
+					}
 				}
 			} else if (slotnum >= 28 && slotnum <= 54 && (this.getSlot(0).getStack().isItemEqual(this.getSlot(slotnum).getStack()))) {
 				if (!this.mergeItemStack(itemstack1, 55, 91, false)) {
@@ -155,8 +166,8 @@ public class ContainerMatterCondenser extends Container {
 	@Override
 	public void addCraftingToCrafters(ICrafting par1ICrafting) {
 		super.addCraftingToCrafters(par1ICrafting);
-		par1ICrafting.sendProgressBarUpdate(this, 0, this.te.progress);
-		par1ICrafting.sendProgressBarUpdate(this, 1, this.te.ueJoules);
+		//par1ICrafting.sendProgressBarUpdate(this, 0, this.te.progress);
+		//par1ICrafting.sendProgressBarUpdate(this, 1, this.te.ueJoules);
 	}
 
 	@Override
@@ -167,11 +178,17 @@ public class ContainerMatterCondenser extends Container {
 			ICrafting icrafting = (ICrafting) this.crafters.get(i);
 
 			if (this.lastEMC != this.te.progress) {
-				icrafting.sendProgressBarUpdate(this, 0, this.te.progress);
+				if (this.te.progress <= Short.MAX_VALUE) {
+					icrafting.sendProgressBarUpdate(this, 0, this.te.progress);
+				} else {
+					int first = this.te.progress / Short.MAX_VALUE;
+					int second = this.te.progress - (first * Short.MAX_VALUE);
+					icrafting.sendProgressBarUpdate(this, first, second);
+				}
 			}
 
 			if (this.lastEng != this.te.ueJoules) {
-				icrafting.sendProgressBarUpdate(this, 1, this.te.ueJoules);
+				icrafting.sendProgressBarUpdate(this, -1, this.te.ueJoules);
 			}
 		}
 
@@ -181,11 +198,11 @@ public class ContainerMatterCondenser extends Container {
 
 	@SideOnly(Side.CLIENT)
 	public void updateProgressBar(int par1, int par2) {
-		if (par1 == 0) {
-			this.te.progress = par2;
+		if (par1 >= 0) {
+			this.te.progress = (par1 * Short.MAX_VALUE) + par2;
 		}
 
-		if (par1 == 1) {
+		if (par1 == -1) {
 			this.te.ueJoules = par2;
 		}
 	}
